@@ -1,3 +1,52 @@
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.entity.EntityUtils;
+import org.apache.http.impl.client.CloseableHttpResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.IOException;
+
+public class OUslgiservice {
+
+    private static final Logger log = LoggerFactory.getLogger(OUslgiservice.class);
+    private static final String DOCUSIGN_ENDPOINT = "https://demo.docusign.net/restapi/";
+    private static final String DOCUSIGN_ACCOUNT_ID = "YOUR_ACCOUNT_ID"; // Replace with actual account ID
+    private final DocusignAccessTokenService docusignAccessTokenService;
+    private final CloseableHttpClient docusignHttpClient;
+    private final ObjectMapper objectMapper;
+
+    public OUslgiservice(DocusignAccessTokenService docusignAccessTokenService, ObjectMapper objectMapper) {
+        this.docusignAccessTokenService = docusignAccessTokenService;
+        this.docusignHttpClient = HttpClients.createDefault(); // Default CloseableHttpClient
+        this.objectMapper = objectMapper;
+    }
+
+    public byte[] getDocument(String envelopeId, String documentId) {
+        String url = DOCUSIGN_ENDPOINT + "v2.1/accounts/" + DOCUSIGN_ACCOUNT_ID + "/envelopes/" + envelopeId + "/documents/" + documentId;
+        HttpGet request = new HttpGet(url);
+        request.setHeader("Authorization", "Bearer " + docusignAccessTokenService.getAccessToken());
+
+        try (CloseableHttpResponse response = docusignHttpClient.execute(request)) {
+            if (response.getStatusLine().getStatusCode() == 200) {
+                return EntityUtils.toByteArray(response.getEntity());
+            } else {
+                String responseBody = EntityUtils.toString(response.getEntity());
+                log.info("Unable to call Docusign getDocument API. code={}, responseBody={}", response.getStatusLine().getStatusCode(), responseBody);
+                throw new RuntimeException("Unable to call Docusign getDocument API. code=" + response.getStatusLine().getStatusCode());
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to execute request", e);
+        }
+    }
+}
+
+
+
+///////////////////////////////////////////////////////////////////////////////////
+
+
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.classic.CloseableHttpResponse;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
