@@ -1,3 +1,56 @@
+import okhttp3.*;
+import java.io.IOException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class OUslgiservice {
+
+    private static final Logger Log = LoggerFactory.getLogger(OUslgiservice.class);
+    private static final String DOCUSIGN_ENDPOINT = "https://demo.docusign.net/restapi/";
+    private static final String DOCUSIGN_ACCOUNT_ID = "YOUR_ACCOUNT_ID"; // Replace with actual account ID
+    private final DocusignAccessTokenService docusignAccessTokenService;
+    private final OkHttpClient docusignHttpClient;
+    private final ObjectMapper objectMapper;
+
+    public OUslgiservice(DocusignAccessTokenService docusignAccessTokenService, OkHttpClient docusignHttpClient, ObjectMapper objectMapper) {
+        this.docusignAccessTokenService = docusignAccessTokenService;
+        this.docusignHttpClient = docusignHttpClient;
+        this.objectMapper = objectMapper;
+    }
+
+    public Envelope getEnvelope(String envelopeId) {
+        String url = DOCUSIGN_ENDPOINT + "v2.1/accounts/" + DOCUSIGN_ACCOUNT_ID + "/envelopes/" + envelopeId + "?include=recipients";
+        Request request = new Request.Builder()
+                .url(url)
+                .get()
+                .addHeader("Authorization", "Bearer " + docusignAccessTokenService.getAccessToken())
+                .build();
+
+        Envelope envelope;
+        try {
+            Response response = docusignHttpClient.newCall(request).execute();
+            ResponseBody body = response.body();
+
+            if (response.isSuccessful()) {
+                assert body != null;
+                envelope = objectMapper.readValue(body.string(), Envelope.class);
+            } else {
+                Log.info("Unable to call Docusign getEnvelope API. code={}, responseBody={}", response.code(), body != null ? body.string() : "null");
+                throw new RuntimeException("Unable to call Docusign getEnvelope API. code=" + response.code());
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to execute request", e);
+        }
+
+        return envelope;
+    }
+}
+
+
+
+
+/////////////////////////////////////////////////////////////////////////
 import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.*;
 import org.slf4j.Logger;
