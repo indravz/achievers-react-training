@@ -1,3 +1,53 @@
+import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.classic.CloseableHttpResponse;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+
+public class OUslgiservice {
+
+    private static final Logger Log = LoggerFactory.getLogger(OUslgiservice.class);
+    private static final String DOCUSIGN_ENDPOINT = "https://demo.docusign.net/restapi/";
+    private static final String DOCUSIGN_ACCOUNT_ID = "YOUR_ACCOUNT_ID"; // Replace with actual account ID
+    private final DocusignAccessTokenService docusignAccessTokenService;
+    private final CloseableHttpClient sifHttpClient;
+    private final ObjectMapper objectMapper;
+
+    public OUslgiservice(DocusignAccessTokenService docusignAccessTokenService, CloseableHttpClient sifHttpClient, ObjectMapper objectMapper) {
+        this.docusignAccessTokenService = docusignAccessTokenService;
+        this.sifHttpClient = sifHttpClient;
+        this.objectMapper = objectMapper;
+    }
+
+    public Envelope getEnvelope(String envelopeId) {
+        String url = DOCUSIGN_ENDPOINT + "v2.1/accounts/" + DOCUSIGN_ACCOUNT_ID + "/envelopes/" + envelopeId + "?include=recipients";
+        HttpGet request = new HttpGet(url);
+        request.setHeader("Authorization", "Bearer " + docusignAccessTokenService.getAccessToken());
+
+        Envelope envelope;
+        try (CloseableHttpResponse response = sifHttpClient.execute(request)) {
+            int statusCode = response.getCode();
+            if (statusCode >= 200 && statusCode < 300) {
+                String responseBody = EntityUtils.toString(response.getEntity());
+                envelope = objectMapper.readValue(responseBody, Envelope.class);
+            } else {
+                String responseBody = response.getEntity() != null ? EntityUtils.toString(response.getEntity()) : "null";
+                Log.info("Unable to call Docusign getEnvelope API. code={}, responseBody={}", statusCode, responseBody);
+                throw new RuntimeException("Unable to call Docusign getEnvelope API. code=" + statusCode);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to execute request", e);
+        }
+
+        return envelope;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
 import okhttp3.*;
 import java.io.IOException;
 import com.fasterxml.jackson.databind.ObjectMapper;
