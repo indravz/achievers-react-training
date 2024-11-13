@@ -1,4 +1,72 @@
 import com.fasterxml.jackson.databind.ObjectMapper;
+import okhttp3.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Service;
+
+import java.io.IOException;
+
+@Service
+@Slf4j
+public class DocusignService {
+    private static final String DOCUSIGN_ENDPOINT = "https://demo.docusign.net/restapi/v2.1/accounts/";
+    private static final String DOCUSIGN_ACCOUNT_ID = "YOUR_ACCOUNT_ID";  // replace with actual account ID
+
+    private final ObjectMapper objectMapper;
+    private final OkHttpClient docusignHttpClient;
+    private final DocusignAccessTokenService docusignAccessTokenService;
+
+    public DocusignService(
+        ObjectMapper objectMapper,
+        @Qualifier("docusignHttpClient") OkHttpClient docusignHttpClient,
+        DocusignAccessTokenService docusignAccessTokenService
+    ) {
+        this.objectMapper = objectMapper;
+        this.docusignHttpClient = docusignHttpClient;
+        this.docusignAccessTokenService = docusignAccessTokenService;
+    }
+
+    public EnvelopeSummary createEnvelope(EnvelopeDefinition envelopeDefinition) {
+        try {
+            String jsonBody = objectMapper.writeValueAsString(envelopeDefinition);
+            RequestBody requestBody = RequestBody.create(jsonBody, MediaType.parse("application/json"));
+
+            // Build the request
+            Request request = new Request.Builder()
+                .url(DOCUSIGN_ENDPOINT + DOCUSIGN_ACCOUNT_ID + "/envelopes")
+                .post(requestBody)
+                .header("Authorization", "Bearer " + docusignAccessTokenService.getAccessToken())
+                .build();
+
+            // Execute the request
+            Response response = docusignHttpClient.newCall(request).execute();
+
+            // Process the response
+            return processResponse(response);
+            
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to create envelope", e);
+        }
+    }
+
+    private EnvelopeSummary processResponse(Response response) throws IOException {
+        ResponseBody responseBody = response.body();
+        if (response.isSuccessful() && responseBody != null) {
+            // Parse the envelope summary from the response
+            EnvelopeSummary envelopeSummary = objectMapper.readValue(responseBody.byteStream(), EnvelopeSummary.class);
+            log.info("Call to Docusign createEnvelope succeeded for envelopeId={}", envelopeSummary.getEnvelopeId());
+            return envelopeSummary;
+        } else {
+            throw new RuntimeException("Call to Docusign createEnvelope API unsuccessful, code: " + response.code());
+        }
+    }
+}
+
+
+/////////////////////////////////////////////////////////////
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.client5.http.classic.methods.CloseableHttpResponse;
 import org.apache.hc.client5.http.classic.HttpClient;
