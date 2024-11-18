@@ -1,3 +1,28 @@
+@Bean
+@Qualifier("sifSSLContext")
+public SSLContext createSIFSSLContext() {
+    try {
+        // Load SIF configuration when available
+        log.info("Loading SIF configuration from /sifConfig.yml");
+        SIFConfig sifConfig = SIFConfigLoader.loadConfig("sifConfig.yml");
+        log.info(sifConfig.toString());
+        SSLContext sslContext = SIFCAClient.createSSLContext(sifConfig);
+        log.info("event=SIF_certificate_loaded");
+        return sslContext;
+    } catch (Exception ex) {
+        // Log the error and fallback to default SSL context
+        log.warn("Failed to load SIF configuration. Falling back to default SSLContext. Error: " + ex.getMessage());
+        try {
+            return SSLContext.getDefault();
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("Unable to load default SSLContext", e);
+        }
+    }
+}
+
+
+///////////////////////////////////////////////////////////
+
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.client.methods.HttpGet;
