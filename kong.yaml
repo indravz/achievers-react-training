@@ -1,0 +1,24 @@
+_format_version: "3.0"
+services:
+  - name: my-upstream-service
+    url: http://your-service:8080  # Your Spring Boot app's URL
+    routes:
+      - name: my-route
+        paths:
+          - /my-api
+    plugins:
+      - name: jwt-signer
+        config:
+          key: |
+            -----BEGIN RSA PRIVATE KEY-----
+            (your-private-key-here)
+            -----END RSA PRIVATE KEY-----
+          algorithm: RS256
+          jwt_headers:
+            kid: "kong-service-key"
+          claims:
+            iss: "kong"
+            sub: "api-service"
+            exp: 3600
+          header_name: "X-Kong-JWT"
+          header_value_prefix: "Bearer "
