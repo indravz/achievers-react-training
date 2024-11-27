@@ -1,3 +1,55 @@
+_format_version: "3.0"
+services:
+  - name: my-upstream-service
+    url: http://your-service:8080  # Your Spring Boot app's URL
+    routes:
+      - name: my-route
+        paths:
+          - /my-api
+    plugins:
+      - name: jwt-signer
+        config:
+          key: |
+            -----BEGIN RSA PRIVATE KEY-----
+            (your-private-key-here)
+            -----END RSA PRIVATE KEY-----
+          algorithm: RS256
+          jwt_headers:
+            kid: "kong-service-key"
+          claims:
+            iss: "kong"
+            sub: "api-service"
+            exp: 3600
+          header_name: "X-Kong-JWT"
+          header_value_prefix: "Bearer "
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
  "value": "{\n\"sif\": {\n\"sdk\": {\n\"client\": {\n\"service-identity\": \"spiffe://sif.gs.com/sif/prod/ca-onprem/certificate-issuer\"\n},\n\"general\": {\n\"ca-type\": \"AWS\"\n},\n\"external\": {\n\"service\": [\n{\"name\": \"spiffe://sif.gs.com/sif-demo-b/nonprod/sif-demo-client-b/demo-client\", \"host\": \"demoapp.gs.com\", \"port\": 443},\n{\"name\": \"spiffe://sif.gs.com/skypath/prod/skyproxy/proxy\", \"host\": \"proxy.skypath.site.gs.com\", \"port\": 443}\n]\n}\n}\n}"
 
 
