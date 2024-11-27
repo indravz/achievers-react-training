@@ -1,3 +1,44 @@
+FROM registry.aws.site.gs.com:443/dx/javaeng/java-maven/jdk21-ubi-rhel8:3.9.5-current
+
+WORKDIR /app
+
+COPY target/panther-service-0.0.1-SNAPSHOT.jar /app/panther-service-0.0.1-SNAPSHOT.jar
+COPY entrypoint.sh /entrypoint.sh
+
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
+
+
+  ///////////////////////////////////////////////////////
+
+#!/bin/bash
+echo "Fetching Truststore from Secrets Manager..."
+
+# Fetch the truststore from Secrets Manager
+TRUSTSTORE_BASE64=$(echo "$TRUSTSTORE_BASE64" | base64 -d)
+
+# Write the truststore to the correct location
+echo "$TRUSTSTORE_BASE64" > /path/to/truststore.p12
+
+# Run the Spring Boot application with the truststore
+exec java -Djavax.net.ssl.trustStore=/path/to/truststore.p12 \
+          -Djavax.net.ssl.trustStorePassword="$TRUSTSTORE_PASSWORD" \
+          -jar /app/panther-service-0.0.1-SNAPSHOT.jar
+  
+//////////////////////////////////////////////////
+
+
+  ///////////////////////
+  server.ssl.key-store=classpath:server.p12
+server.ssl.key-store-password=your-server-key-password
+server.ssl.key-store-type=PKCS12
+server.ssl.trust-store=/path/to/truststore.p12
+server.ssl.trust-store-password=your-truststore-password
+server.ssl.trust-store-type=PKCS12
+server.ssl.client-auth=need
+/////////////////////////////
+
 #!/bin/bash
 echo "Fetching Truststore from Secrets Manager..."
 
