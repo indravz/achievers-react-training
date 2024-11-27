@@ -1,3 +1,15 @@
+server.ssl.enabled=false  # Disable server-side SSL in Spring Boot as it's handled by the load balancer
+
+# Enable client certificate validation
+server.ssl.client-auth=need   # 'need' means client certificate is required for validation
+
+# Truststore location after it's written from Secrets Manager
+server.ssl.trust-store=/tmp/truststore.p12   # Path to the dynamically fetched and saved truststore
+server.ssl.trust-store-password=${TRUSTSTORE_PASSWORD}   # The password for the truststore
+server.ssl.trust-store-type=PKCS12   # Type of the truststore
+
+
+
 
 import java.security.cert.X509Certificate;
 import javax.net.ssl.X509TrustManager;
