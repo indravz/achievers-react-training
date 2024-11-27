@@ -1,3 +1,40 @@
+#!/bin/bash
+echo "Fetching Truststore from Secrets Manager..."
+
+# Fetch the truststore from Secrets Manager
+TRUSTSTORE_BASE64=$(aws secretsmanager get-secret-value \
+  --secret-id my-truststore --query 'SecretString' --output text | jq -r '.["truststore.p12"]')
+
+# Decode and save the truststore file
+echo "$TRUSTSTORE_BASE64" | base64 -d > /path/to/truststore.p12
+
+# Run the Spring Boot application
+exec java -Djavax.net.ssl.trustStore=/path/to/truststore.p12 \
+          -Djavax.net.ssl.trustStorePassword="$TRUSTSTORE_PASSWORD" \
+          -jar your-app.jar
+
+
+
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
+
+
+    server:
+  ssl:
+    enabled: true
+    trust-store: /path/to/truststore.p12
+    trust-store-password: ${TRUSTSTORE_PASSWORD}
+    client-auth: need
+
+
+
+
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////
+
 server.ssl.enabled=false  # Disable server-side SSL in Spring Boot as it's handled by the load balancer
 
 # Enable client certificate validation
