@@ -1,5 +1,8 @@
 keytool -import -trustcacerts -file ca-cert.pem -alias ca-cert -keystore truststore.p12 -storepass your-password
 
+  keytool -import -trustcacerts -file another-client-cert.pem -alias another-client -keystore truststore.p12 -storepass your-password
+
+
 
 
 FROM registry.aws.site.gs.com:443/dx/javaeng/java-maven/jdk21-ubi-rhel8:3.9.5-current
