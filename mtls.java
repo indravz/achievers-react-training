@@ -1,3 +1,6 @@
+base64 truststore.p12 > truststore.p12.base64
+
+
 keytool -import -trustcacerts -file ca-cert.pem -alias ca-cert -keystore truststore.p12 -storepass your-password
 
   keytool -import -trustcacerts -file another-client-cert.pem -alias another-client -keystore truststore.p12 -storepass your-password
