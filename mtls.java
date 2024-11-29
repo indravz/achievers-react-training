@@ -1,7 +1,7 @@
 
 
 
-
+ExchangeTokenResponse tokenResponse = altaPingClient.clientCredentialExchange();
 authenticationResponse.getHeaders().add("X-Kong-Authorization", "Bearer " + tokenResponse.getAccessToken());
 
 
