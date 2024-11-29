@@ -1,3 +1,10 @@
+output "sifconfig" {
+  value = yamldecode(file("sifconfig-${var.environment}.yaml"))
+}
+
+
+
+
 ```markdown
 # Setting Up a React App in a Git Repository
 
