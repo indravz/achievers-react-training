@@ -1,4 +1,4 @@
-
+ log.info("Header Names: {}", String.join(", ", response.getHeaders().keySet()));
 
 
 ExchangeTokenResponse tokenResponse = altaPingClient.clientCredentialExchange();
