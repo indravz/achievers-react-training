@@ -1,3 +1,21 @@
+
+
+
+
+authenticationResponse.getHeaders().add("X-Kong-Authorization", "Bearer " + tokenResponse.getAccessToken());
+
+
+
+
+
+
+
+
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////
+
 base64 truststore.p12 > truststore.p12.base64
 
 
