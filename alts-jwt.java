@@ -1,4 +1,6 @@
-
+val httpRequest = request as HttpServletRequest
+        val httpResponse = response as HttpServletResponse
+   
 try {
     **// Validate x-kong-authorization JWT**
     if (!validateKongAuthorization(httpRequest, httpResponse)) {
