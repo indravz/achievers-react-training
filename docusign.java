@@ -1,3 +1,115 @@
+package com.gs.gsas.accounts.docusign;
+
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.JWTCreator;
+import com.auth0.jwt.algorithms.Algorithm;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.hc.client5.http.classic.methods.HttpPost;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
+import org.apache.hc.core5.http.ParseException;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
+import org.apache.hc.core5.http.io.entity.StringEntity;
+import org.apache.hc.core5.http.ContentType;
+import org.bouncycastle.openssl.PEMParser;
+import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Service;
+
+import java.io.IOException;
+import java.io.StringReader;
+import java.security.interfaces.RSAPrivateKey;
+import java.time.Instant;
+import java.util.Date;
+
+import static com.gs.gsas.configs.Environment.*;
+
+@Slf4j
+@Service
+public class DocusignAccessTokenService {
+    private final ObjectMapper objectMapper = new ObjectMapper();
+    private Instant tokenExpirationTime;
+    private DocusignAccessToken accessToken;
+    private final CloseableHttpClient sifHttpClient;
+
+    public DocusignAccessTokenService(@Qualifier("sifHttpClient") CloseableHttpClient sifHttpClient) {
+        this.sifHttpClient = sifHttpClient;
+    }
+
+    private static RSAPrivateKey buildPrivateKey() {
+        if (DOCUSIGN_PRIVATE_KEY.isBlank()) {
+            throw new RuntimeException("DOCUSIGN_PRIVATE_KEY environment variable cannot be blank.");
+        }
+        String privateKeyContent = "-----BEGIN RSA PRIVATE KEY-----\n"
+                + DOCUSIGN_PRIVATE_KEY.replace("", "\n")
+                + "\n-----END RSA PRIVATE KEY-----\n";
+
+        try (PEMParser pemParser = new PEMParser(new StringReader(privateKeyContent))) {
+            Object object = pemParser.readObject();
+            JcaPEMKeyConverter converter = new JcaPEMKeyConverter();
+            if (object instanceof org.bouncycastle.asn1.pkcs.PEMKeyPair pemKeyPair) {
+                return (RSAPrivateKey) converter.getPrivateKey(pemKeyPair.getPrivateKeyInfo());
+            } else if (object instanceof org.bouncycastle.asn1.pkcs.PrivateKeyInfo privateKeyInfo) {
+                return (RSAPrivateKey) converter.getPrivateKey(privateKeyInfo);
+            } else {
+                throw new IllegalArgumentException("Unsupported object type: " + object.getClass());
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Error building private key", e);
+        }
+    }
+
+    private String generateAssertion() {
+        Algorithm algorithm = Algorithm.RSA256(null, buildPrivateKey());
+        long now = System.currentTimeMillis();
+        return JWT.create()
+                .withIssuer(DOCUSIGN_CLIENT_ID)
+                .withAudience(DOCUSIGN_OAUTH_BASE_PATH)
+                .withIssuedAt(new Date(now))
+                .withClaim("scope", "signature impersonation")
+                .withSubject(DOCUSIGN_USER_ID)
+                .withExpiresAt(new Date(now + 3600 * 1000))
+                .sign(algorithm);
+    }
+
+    private DocusignAccessToken requestAccessToken() throws IOException, ParseException {
+        HttpPost request = new HttpPost("https://" + DOCUSIGN_OAUTH_BASE_PATH + "/oauth/token");
+        request.setHeader("Content-Type", "application/x-www-form-urlencoded");
+
+        String requestBody = "grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=" + generateAssertion();
+        request.setEntity(new StringEntity(requestBody, ContentType.APPLICATION_FORM_URLENCODED));
+
+        try (CloseableHttpResponse response = sifHttpClient.execute(request)) {
+            int statusCode = response.getCode();
+            String responseBody = EntityUtils.toString(response.getEntity());
+            if (statusCode >= 200 && statusCode < 300) {
+                return objectMapper.readValue(responseBody, DocusignAccessToken.class);
+            } else {
+                log.error("Error obtaining access token. Status: {}, Response: {}", statusCode, responseBody);
+                throw new IOException("Failed to obtain access token.");
+            }
+        }
+    }
+
+    public synchronized String getAccessToken() {
+        Instant now = Instant.now().minusSeconds(10);
+        if (accessToken == null || tokenExpirationTime.isBefore(now)) {
+            try {
+                accessToken = requestAccessToken();
+                tokenExpirationTime = Instant.now().plusSeconds(accessToken.getExpiresIn());
+                log.info("Obtained new Docusign access token.");
+            } catch (IOException | ParseException e) {
+                throw new RuntimeException("Failed to retrieve access token.", e);
+            }
+        }
+        return accessToken.getAccessToken();
+    }
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////####################!!!!!!!!!!!!!!!!!!!
 @Bean
 @Qualifier("sifSSLContext")
 public SSLContext createSIFSSLContext() {
