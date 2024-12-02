@@ -1,3 +1,6 @@
+String configFileName = "sifConfig" + (env != null ? "$" + env : "") + ".yml";
+
+///////////////////////////////////////////////////
 package com.gs.gsas.accounts.docusign;
 
 import com.auth0.jwt.JWT;
