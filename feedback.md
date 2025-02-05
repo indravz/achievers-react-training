@@ -1,3 +1,63 @@
+Here’s a proofread and slightly refined version of your description, along with some suggestions for clarity and consistency:
+
+---
+
+### Revised Version:
+
+This design review focuses on two API calls and a configuration change at the API gateway.
+
+Previously, users could authorize vendors to access their data after logging into their accounts. Once authorized, the vendor's backend would make API calls to fetch data and build dashboards on their UI.
+
+Now, we have a new use case where an advisor on the vendor's UI wants to directly SSO (Single Sign-On) into our **Advisors Portal**.
+
+#### SSO Flow:
+1. When an advisor initiates SSO to the **Advisors Portal**, the UI will call the vendor's backend.
+2. The vendor's backend will proxy the API call to our backend to obtain a short-lived, one-time **SSO code**.
+3. The UI will receive the **SSO code** along with the **loginId** and then open our portal in a new tab.
+4. Our API gateway will validate the **SSO code** and return a **Set-Cookie** header, effectively logging the user into our portal.
+
+#### Account Access from Vendor UI:
+- If the advisor wants to check accounts from the vendor UI, the system will make a request to:
+  ```
+  GET /api/v1/accounts?loginId=<>&ssocode=<>
+  ```
+- The API gateway will validate both the **SSO code** and **loginId**.
+- After validation, the API gateway will strip the **SSO code** and **loginId** query parameters from the URL.
+
+---
+
+### Suggestions:
+1. **Clarify "advisor" vs. "user"**  
+   - Your description switches between "user" and "advisor." If "advisor" is the primary role for this SSO flow, use it consistently.
+  
+2. **Standardize Terminology**  
+   - "SSO code" vs. "ssocode" – Stick to "SSO code" for readability.
+   - "loginId" vs. "Login ID" – Keep it consistent.
+
+3. **Refine API Gateway Behavior**  
+   - Instead of saying "remove query params from the URL," specify if it means:
+     - The API gateway internally cleans up logs.
+     - The request is rewritten before forwarding.
+     - Query parameters are stripped in the response.
+  
+4. **Grammar and Formatting Fixes**  
+   - Fixed typos (e.g., "vnedor" → "vendor," "teh" → "the," "lssocode" → "SSO code").
+   - Improved sentence flow for readability.
+
+Let me know if you’d like any further refinements! 🚀
+
+
+
+
+
+
+
+
+
+
+
+
+
 _format_version: "3.0"
 services:
   - name: my-upstream-service
